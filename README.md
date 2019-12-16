@@ -77,24 +77,36 @@ Creates a tee object.
 
 save_req_body
 -------------
+`syntax`: t:save_req_body(body)
+
+Save request body data.
 
 [Back to TOC](#table-of-contents)
 
 
 save_resp_body
 -------------
+`syntax`: t:save_resp_body(body)
+
+Save response body data.
 
 [Back to TOC](#table-of-contents)
 
 
 request
 -------
+`syntax`: s = t:request()
+
+Return the request raw data.
 
 [Back to TOC](#table-of-contents)
 
 
 response
 --------
+`syntax`: s = t:response()
+
+Return the response raw data.
 
 [Back to TOC](#table-of-contents)
 
