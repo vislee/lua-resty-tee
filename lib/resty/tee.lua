@@ -39,7 +39,8 @@ local http_status_line = {
 }
 
 
-function _get_status_line(status)
+local _get_status_line
+_get_status_line = function(status)
     local line = http_status_line[tostring(status)]
     if not line then
         line = tostring(status) .. " undefined\r\n"
