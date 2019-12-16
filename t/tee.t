@@ -12,10 +12,7 @@ run_tests();
 
 __DATA__
 
-
-
-=== TEST 8: filter:spec
-
+=== TEST 1: test
 
 --- http_config
     lua_package_path 'lib/?.lua;;';
