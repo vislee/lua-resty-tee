@@ -39,7 +39,7 @@ Synopsis
     location /t/ {
 
         access_by_lua_block {
-            local tee = require "resty.tee" .new()
+            local tee = require "resty.tee" .new(64, 128)
             ngx.req.read_body()
             tee:save_req_body(ngx.req.get_body_data())
         }
@@ -69,9 +69,10 @@ Methods
 
 new
 ---
-`syntax: t = new()`
+`syntax: t = new(req_body_limit, resp_body_limit)`
 
 Creates a tee object.
+`req_body_limit` Output the request body size limit, default: 4K. `resp_body_limit` Output the response body size limit, default: 4K.
 
 [Back to TOC](#table-of-contents)
 

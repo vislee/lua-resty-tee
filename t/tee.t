@@ -23,13 +23,19 @@ __DATA__
     }
 
 
+    log_format main '$time_local  '
+    '$hostname#?#  :'
+    '$tee_req#?#  :'
+    '$tee_resp';
+
+
     server {
         listen 127.0.0.1:8082;
 
         location /{
 
             content_by_lua_block {
-                ngx.print("okok")
+                ngx.print("okokxxx")
                 ngx.exit(ngx.HTTP_OK)
             }
         }
@@ -38,8 +44,13 @@ __DATA__
 --- config
     location /t/ {
 
+        set $tee_req '';
+        set $tee_resp '';
+
+        access_log /tmp/access.log main;
+
         access_by_lua_block {
-            local tee = require "resty.tee" .new()
+            local tee = require "resty.tee" .new(5, 4)
             ngx.req.read_body()
             tee:save_req_body(ngx.req.get_body_data())
         }
@@ -53,10 +64,9 @@ __DATA__
 
         log_by_lua_block {
 
-            local reqstr = "POST /t/webids?hello=vis HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nContent-Length: 5\r\n\r\nhello"
-    
-            local respstr = "HTTP/1.1 200 OK\r\nconnection: close\r\ncontent-length: 4\r\ncontent-type: text/plain\r\n\r\nokok"
+            local reqstr = "POST /t/webids?hello=vis HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nContent-Length: 12\r\n\r\nhello"
 
+            local respstr = "HTTP/1.1 200 OK\r\nconnection: close\r\ncontent-length: 7\r\ncontent-type: text/plain\r\n\r\nokok"
 
             local tee = require "resty.tee" .new()
 
@@ -64,16 +74,20 @@ __DATA__
                 ngx.log(ngx.ERR, "=====req error======", tee:request())
             end
 
+            ngx.var.tee_req = tee:request()
+
             if tee:response() ~= respstr then
                 ngx.log(ngx.ERR, "====resp error ====", tee:response())
             end
+
+            ngx.var.tee_resp = tee:response()
         }
     }
 
 --- timeout: 10
 --- request
 POST /t/webids?hello=vis
-hello
+helloxxxxxxx
 --- response_headers_like
 --- response_body_like: okok
 --- error_code: 200

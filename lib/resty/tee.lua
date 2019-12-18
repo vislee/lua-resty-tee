@@ -9,6 +9,7 @@ local ngx_resp_get_headers  = ngx.resp.get_headers
 
 
 local tab_concat = table.concat
+local str_sub    = string.sub
 
 local ok, tab_new = pcall(require, "table.new")
 if not ok then
@@ -56,15 +57,18 @@ _M.version = "0.01"
 local mt = { __index = _M }
 
 
-function  _M.new()
+function  _M.new(req_body_limit, resp_body_limit)
     if ngx.ctx._tee then
         return ngx.ctx._tee
     end
 
-    local t = tab_new(0, 4)
+    local t = tab_new(0, 6)
 
     t._http_version = 'HTTP/' .. ngx.req.http_version()
     t._resp_body = tab_new(2, 0)
+    t._req_body_limit = req_body_limit or 4096
+    t._resp_body_limit = resp_body_limit or 4096
+    t._resp_body_size = 0
 
     ngx.ctx._tee = setmetatable(t, mt)
 
@@ -85,13 +89,28 @@ function _M.save_req_body(self, body)
     end
 
     if body then
-        self._req_body = body .. ''
+        self._req_body = str_sub(body, 1, self._req_body_limit) .. ''
     end
 end
 
 
 function _M.save_resp_body(self, body)
-    self._resp_body[#self._resp_body + 1] = body
+    if not body then
+        return
+    end
+
+    local has = self._resp_body_limit - self._resp_body_size
+    if has <= 0 then
+        return
+    end
+
+    local have = #body
+    if has > have then
+        has = have
+    end
+
+    self._resp_body[#self._resp_body + 1] = str_sub(body, 1, has)
+    self._resp_body_size = self._resp_body_size + has
 end
 
 
