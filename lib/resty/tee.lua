@@ -77,6 +77,10 @@ end
 
 
 function _M.save_req_body(self, body)
+    if self._req_body then
+        return
+    end
+
     if not body then
         local file = ngx_req_get_body_file()
         if file then
