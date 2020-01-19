@@ -135,7 +135,11 @@ function _M.response(self)
     local head = tab_new(50, 0)
     local h = ngx_resp_get_headers(50, true)
     for k, v in pairs(h) do
-        head[#head+1] = k .. ': ' .. v
+        if type(v) == "table" then
+            head[#head+1] = k .. ': ' .. tab_concat(v, ", ")
+        else
+            head[#head+1] = k .. ': ' .. v
+        end
     end
     head[#head+1] = '\r\n'
     resp[2] = tab_concat(head, '\r\n')
