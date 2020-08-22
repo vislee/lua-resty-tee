@@ -1,7 +1,10 @@
 -- Copyright (C) 2019 vislee
 
 local ngx_var               = ngx.var
+local ngx_req_get_method    = ngx.req.get_method
+local ngx_req_http_version  = ngx.req.http_version
 local ngx_req_raw_header    = ngx.req.raw_header
+local ngx_req_get_headers   = ngx.req.get_headers
 local ngx_req_read_body     = ngx.req.read_body
 local ngx_req_get_body      = ngx.req.get_body_data
 local ngx_req_get_body_file = ngx.req.get_body_file
@@ -64,7 +67,7 @@ function  _M.new(req_body_limit, resp_body_limit)
 
     local t = tab_new(0, 6)
 
-    t._http_version = 'HTTP/' .. ngx.req.http_version()
+    t._http_version = 'HTTP/' .. ngx_req_http_version()
     t._resp_body = tab_new(2, 0)
     t._req_body_limit = req_body_limit or 4096
     t._resp_body_limit = resp_body_limit or 4096
@@ -121,7 +124,24 @@ end
 function _M.request(self)
     local req = tab_new(2, 0)
 
-    req[1] = ngx_req_raw_header()
+    if ngx_req_http_version() == 2.0 then
+        local head = tab_new(51, 0)
+        head[1] = tab_concat({(ngx_req_get_method() or "UNK"), ngx.var.request_uri, self._http_version}, " ")
+        local h = ngx_req_get_headers(50, true)
+        for k, v in pairs(h) do
+            if type(v) == "table" then
+                head[#head+1] = k .. ': ' .. tab_concat(v, ", ")
+            else
+                head[#head+1] = k .. ': ' .. v
+            end
+        end
+        head[#head+1] = '\r\n'
+        req[1] = tab_concat(head, '\r\n')
+        tab_clear(head)
+    else
+        req[1] = ngx_req_raw_header()
+    end
+
     req[2] = self._req_body
 
     return tab_concat(req, '')

@@ -33,6 +33,7 @@ __DATA__
         listen 127.0.0.1:8082;
 
         location /{
+            add_header content-type text/plain;
             return 204;
         }
     }
@@ -197,6 +198,7 @@ helloxxxxxxx
         location /{
             add_header 'Set-Cookie' 'a=b; httponly';
             add_header 'Set-Cookie' 'b=b; httponly';
+            add_header content-type text/plain;
             return 204;
         }
     }
