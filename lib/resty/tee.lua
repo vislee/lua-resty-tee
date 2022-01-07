@@ -1,6 +1,7 @@
 -- Copyright (C) 2019 vislee
 
 local ngx_var               = ngx.var
+local ngx_enbase64          = ngx.encode_base64
 local ngx_req_get_method    = ngx.req.get_method
 local ngx_req_http_version  = ngx.req.http_version
 local ngx_req_raw_header    = ngx.req.raw_header
@@ -13,6 +14,7 @@ local ngx_resp_get_headers  = ngx.resp.get_headers
 
 local tab_concat = table.concat
 local str_sub    = string.sub
+local str_lower  = string.lower
 
 local ok, tab_new = pcall(require, "table.new")
 if not ok then
@@ -112,11 +114,13 @@ function _M.save_resp_body(self, body)
     end
 
     local have = #body
-    if has > have then
+    if have > has then
+        self._resp_body[#self._resp_body + 1] = str_sub(body, 1, has)
+    else
+        self._resp_body[#self._resp_body + 1] = body
         has = have
     end
 
-    self._resp_body[#self._resp_body + 1] = str_sub(body, 1, has)
     self._resp_body_size = self._resp_body_size + has
 end
 
@@ -148,10 +152,43 @@ function _M.request(self)
 end
 
 
+local encode_body = function(key, val)
+    local k = str_lower(key)
+    if (k == "content-encoding" or k == "content_encoding") and val == "gzip" then
+        return true
+    end
+
+    local types = {
+        ["image/gif"] = "gif",
+        ["image/jpeg"] = "jpeg jpg",
+        ["image/png"] = "png",
+        ["image/svg+xml"] = "svg svgz",
+        ["image/tiff"] = "tif tiff",
+        ["image/vnd.wap.wbmp"] = "wbmp",
+        ["image/webp"] = "webp",
+        ["image/x-icon"] = "ico",
+        ["image/x-jng"] = "jng",
+        ["image/x-ms-bmp"] = "bmp",
+        ["application/x-7z-compressed"] = "7z",
+        ["application/zip"] = "zip",
+        ["application/octet-stream"] = "bin iso ...",
+        ["audio/mpeg"] = "mp3",
+        ["video/mp4"] = "mp4",
+    }
+
+    if (k == "content-type" or k == "content_type") and types[val] then
+        return true
+    end
+
+    return false
+end
+
+
 function _M.response(self)
     local resp = tab_new(3, 0)
     resp[1] = self._http_version .. ' ' .. _get_status_line(ngx.status)
 
+    local base64 = false
     local head = tab_new(50, 0)
     local h = ngx_resp_get_headers(50, true)
     for k, v in pairs(h) do
@@ -159,13 +196,20 @@ function _M.response(self)
             head[#head+1] = k .. ': ' .. tab_concat(v, ", ")
         else
             head[#head+1] = k .. ': ' .. v
+            if not base64 then
+                base64 = encode_body(k, v)
+            end
         end
     end
     head[#head+1] = '\r\n'
     resp[2] = tab_concat(head, '\r\n')
     tab_clear(head)
 
-    resp[3] = tab_concat(self._resp_body, '')
+    local body = tab_concat(self._resp_body, '')
+    if base64 then
+        body = ngx_enbase64(body)
+    end
+    resp[3] = body
 
     return tab_concat(resp, '')
 end
