@@ -125,7 +125,12 @@ function _M.save_resp_body(self, body)
 end
 
 
-function _M.request(self)
+function _M.request(self, filter)
+    if filter and type(filter) == "table" then
+        local tee_filter = require "resty.tee_filter"
+        return tee_filter.get_filter_request(self, filter)
+    end
+
     local req = tab_new(2, 0)
 
     if ngx_req_http_version() == 2.0 then
